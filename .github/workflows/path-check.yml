@@ -48,39 +48,57 @@ jobs:
               .split('\n')
               .map(s => s.trim())
               .filter(Boolean);
-
+      
             const actor = context.actor;
-
+      
             if (files.length === 0) {
               core.info('No files changed.');
               return;
             }
-
+      
             core.info(`Push by: ${actor}`);
             core.info(`Changed files (${files.length}):`);
             files.forEach(f => core.info(` - ${f}`));
-
+      
             const violations = files.filter(file => {
-              if (file.startsWith(`members/${actor}/`)) return false;
-              return true;
+              // members/ 밖은 모두 허용
+              if (!file.startsWith('members/')) {
+                return false;
+              }
+      
+              // 본인 디렉터리는 허용
+              if (file.startsWith(`members/${actor}/`)) {
+                return false;
+              }
+      
+              // members 루트 자체를 직접 수정하는 경우는 금지
+              // 예: members/something.txt
+              const parts = file.split('/');
+      
+              // members/<dir>/... 구조에서 <dir> 확인
+              const memberDir = parts[1];
+      
+              // 필요하면 _template 허용 여부 조절 가능
+              // 지금은 다른 사람 디렉터리와 함께 금지
+              if (memberDir && memberDir !== actor) {
+                return true;
+              }
+      
+              return false;
             });
-
+      
             if (violations.length > 0) {
               const msg = [
-                `❌ 경로 제한 위반 감지!`,
+                `❌ members 디렉터리 접근 제한 위반`,
                 ``,
-                `사용자 "${actor}"가 허용되지 않은 경로의 파일을 수정했습니다:`,
+                `사용자 "${actor}"는 본인 디렉터리(members/${actor}/)만 수정할 수 있습니다.`,
+                `members 외부 파일은 자유롭게 수정 가능합니다.`,
+                ``,
+                `허용되지 않은 파일:`,
                 ...violations.map(f => ` • ${f}`),
-                ``,
-                `✅ 허용된 경로: members/${actor}/ 내부만 수정 가능합니다.`,
-                ``,
-                `해결 방법:`,
-                `1. 본인 디렉토리 외부의 변경사항을 되돌리세요`,
-                `2. git checkout -- <되돌릴 파일>`,
-                `3. 본인 디렉토리 변경사항만 다시 commit & push 하세요`,
               ].join('\n');
-
+      
               core.setFailed(msg);
             } else {
-              core.info(`✅ 모든 변경사항이 허용된 경로 내에 있습니다 (members/${actor}/)`);
+              core.info(`✅ 검사 통과: members/${actor}/ 외의 다른 사용자 디렉터리는 수정하지 않았습니다.`);
             }
