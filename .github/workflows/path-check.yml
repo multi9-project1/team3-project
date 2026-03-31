@@ -1,0 +1,86 @@
+name: 경로 제한 검사
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-paths:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            git diff --name-only "origin/${{ github.base_ref }}"...HEAD > changed_files.txt
+          else
+            if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+              git ls-files > changed_files.txt
+            else
+              git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" > changed_files.txt
+            fi
+          fi
+
+          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          cat changed_files.txt >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Validate path restrictions
+        uses: actions/github-script@v7
+        env:
+          FILES_MODIFIED: ${{ steps.changed-files.outputs.changed_files }}
+        with:
+          script: |
+            const raw = process.env.FILES_MODIFIED || '';
+            const files = raw
+              .split('\n')
+              .map(s => s.trim())
+              .filter(Boolean);
+
+            const actor = context.actor;
+
+            if (files.length === 0) {
+              core.info('No files changed.');
+              return;
+            }
+
+            core.info(`Push by: ${actor}`);
+            core.info(`Changed files (${files.length}):`);
+            files.forEach(f => core.info(` - ${f}`));
+
+            const violations = files.filter(file => {
+              if (file.startsWith(`members/${actor}/`)) return false;
+              return true;
+            });
+
+            if (violations.length > 0) {
+              const msg = [
+                `❌ 경로 제한 위반 감지!`,
+                ``,
+                `사용자 "${actor}"가 허용되지 않은 경로의 파일을 수정했습니다:`,
+                ...violations.map(f => ` • ${f}`),
+                ``,
+                `✅ 허용된 경로: members/${actor}/ 내부만 수정 가능합니다.`,
+                ``,
+                `해결 방법:`,
+                `1. 본인 디렉토리 외부의 변경사항을 되돌리세요`,
+                `2. git checkout -- <되돌릴 파일>`,
+                `3. 본인 디렉토리 변경사항만 다시 commit & push 하세요`,
+              ].join('\n');
+
+              core.setFailed(msg);
+            } else {
+              core.info(`✅ 모든 변경사항이 허용된 경로 내에 있습니다 (members/${actor}/)`);
+            }

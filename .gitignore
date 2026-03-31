@@ -1,0 +1,92 @@
+# ========== PYTHON ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ========== CONDA ==========
+env/
+venv/
+ENV/
+.conda/
+conda-bld/
+envs/
+
+# ========== VIRTUAL ENVIRONMENTS ==========
+.venv/
+venv.bak/
+env.bak/
+
+# ========== JUPYTER & IPYTHON ==========
+.ipynb_checkpoints/
+.ipython/
+profile_default/
+
+# ========== TESTING ==========
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ========== IDE & EDITORS ==========
+.vscode/
+!.vscode/settings.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ========== OS FILES ==========
+.DS_Store
+Thumbs.db
+Desktop.ini
+.Trash-*/
+
+# ========== LOGS & TEMP ==========
+*.log
+logs/
+
+# ========== CREDENTIALS & SECRETS ==========
+.env
+.env.local
+.env.*.local
+secrets/
+credentials/
+
+# ========== DATABASE ==========
+*.db
+*.sqlite
+*.sqlite3
+
+# ========== MISC ==========
+.mypy_cache/
+.ruff_cache/
+.pixi/
