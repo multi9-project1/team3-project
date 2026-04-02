@@ -113,10 +113,10 @@ nano .env  # 또는 vim, code 등
 
 ```env
 # 카카오 REST API 키 (필수)
-KAKAO_API_KEY=2d324ca2e1934cfeb7a09694886cf3f7
+KAKAO_API_KEY=''
 
 # OpenAI API 키 (선택 - AI 추천용)
-OPENAI_API_KEY=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
+OPENAI_API_KEY=''
 
 # OpenAI 모델 설정
 OPENAI_MODEL=gpt-4o-mini
