@@ -11,10 +11,6 @@
 
 ### 1. OpenAI API 키 재발급 (즉시)
 
-**현재 노출된 키:**
-```
-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
-```
 
 **재발급 절차:**
 1. https://platform.openai.com/api-keys 접속
@@ -27,9 +23,6 @@ sk-proj-R5ZFnFqZuC4H28IvJfNaPXhFcauTckeTBAWwcf9JBuE6V0XePF7Dm6s9Fu2y4dsgJ5fCcIMc
 ### 2. Kakao API 키 확인
 
 **현재 키:**
-```
-2d324ca2e1934cfeb7a09694886cf3f7
-```
 
 **확인 사항:**
 - https://developers.kakao.com 접속
