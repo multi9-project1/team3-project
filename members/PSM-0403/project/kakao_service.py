@@ -975,7 +975,7 @@ class KakaoService:
             return f"https://{value[len('http://'):] }"
         if value.startswith('https://'):
             return value
-        return f'https://{value.lstrip('/')}'
+        return f"https://{value.lstrip('/')}"
 
     def _extract_photo_urls_from_meta(self, soup: BeautifulSoup) -> List[str]:
         """장소 페이지 meta 태그에서 사진 URL 후보를 추출합니다."""
