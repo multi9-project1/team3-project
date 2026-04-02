@@ -22,23 +22,17 @@ class DataManager:
         데이터 매니저 초기화
         
         Args:
-            csv_path: CSV 파일 경로 (기본: jeju_places_final_fixed.csv)
+            csv_path: CSV 파일 경로 (기본: data.csv)
         """
-        self.csv_candidates = self._resolve_csv_candidates(csv_path)
-        self.csv_path = self.csv_candidates[0] if self.csv_candidates else (csv_path or 'jeju_places_final_fixed.csv')
+        self.csv_path = csv_path if csv_path else 'data.csv'
         self.df = None
 
     def _resolve_csv_candidates(self, csv_path: str = None) -> List[str]:
         """사용 가능한 CSV 파일 목록을 우선순위대로 반환합니다."""
-        if csv_path:
-            return [csv_path]
-
-        candidates = []
-        for path in ['data.csv', 'jeju_places_final_fixed.csv']:
-            if os.path.exists(path):
-                candidates.append(path)
-
-        return candidates or ['jeju_places_final_fixed.csv']
+        target = csv_path if csv_path else 'data.csv'
+        if os.path.exists(target):
+            return [target]
+        return []
 
     def _read_csv_with_fallbacks(self, csv_path: str) -> pd.DataFrame:
         """여러 인코딩을 시도하여 CSV를 읽습니다."""
@@ -56,49 +50,62 @@ class DataManager:
         return pd.read_csv(csv_path)
 
     def _prepare_dataframe(self, df: pd.DataFrame, csv_path: str) -> pd.DataFrame:
-        """CSV 데이터를 앱에서 쓰는 표준 포맷으로 정리합니다."""
+        """data.csv 데이터 구조에 맞춰 표준 포맷으로 정밀하게 정리합니다."""
         prepared = df.copy()
 
+        # 1. 필수 컬럼 확인 및 기본값 생성
+        # data.csv에 이미 있는 컬럼: name, category, lat, lng, address, place_url, rating, total_cnt, reviews_text, keywords
         required_cols = ['name', 'category', 'lat', 'lng', 'address']
         for col in required_cols:
             if col not in prepared.columns:
                 prepared[col] = ''
 
-        for col in ['phone', 'place_url', 'place_id', 'keywords', 'reviews_text']:
+        # 2. 누락된 보조 컬럼 생성 (data.csv에 없는 phone, place_id 등)
+        optional_cols = ['phone', 'place_url', 'place_id', 'keywords', 'reviews_text']
+        for col in optional_cols:
             if col not in prepared.columns:
                 prepared[col] = ''
 
-        if 'total_cnt' not in prepared.columns:
-            prepared['total_cnt'] = 0
-
-        if 'rating' not in prepared.columns:
-            prepared['rating'] = pd.NA
-
+        # 3. 데이터 타입 및 결측치 처리
         prepared['name'] = prepared['name'].fillna('').astype(str).str.strip()
         prepared['address'] = prepared['address'].fillna('').astype(str).str.strip()
         prepared['category'] = prepared['category'].apply(self._normalize_category)
         prepared['phone'] = prepared['phone'].fillna('').astype(str).str.strip()
         prepared['place_url'] = prepared['place_url'].fillna('').astype(str).str.strip()
-        prepared['keywords'] = prepared['keywords'].fillna('').astype(str)
         prepared['reviews_text'] = prepared['reviews_text'].fillna('').astype(str)
+        
+        # 숫자형 변환 (에러 발생 시 NaN 처리)
         prepared['lat'] = pd.to_numeric(prepared['lat'], errors='coerce')
         prepared['lng'] = pd.to_numeric(prepared['lng'], errors='coerce')
         prepared['rating'] = pd.to_numeric(prepared['rating'], errors='coerce')
-        prepared['total_cnt'] = pd.to_numeric(prepared['total_cnt'], errors='coerce').fillna(0).astype(int)
-        prepared['review_count'] = prepared['total_cnt']
+        
+        # 리뷰 수 처리 (total_cnt 사용)
+        if 'total_cnt' in prepared.columns:
+            prepared['total_cnt'] = pd.to_numeric(prepared['total_cnt'], errors='coerce').fillna(0).astype(int)
+            prepared['review_count'] = prepared['total_cnt']
+        else:
+            prepared['review_count'] = 0
+
+        # 4. 키워드(keywords) 정제 로직
+        # data.csv의 키워드가 공백 구분인 경우 쉼표 구분으로 변환하여 검색 효율을 높임
+        def clean_keywords(row):
+            k = str(row['keywords']).strip()
+            if not k or k.lower() == 'nan':
+                # 키워드가 비어있으면 이름에서 추출
+                return self._extract_keywords_from_name(row['name'])
+            # 공백으로 구분된 단어들을 쉼표로 변환
+            words = k.replace(',', ' ').split()
+            return ','.join(dict.fromkeys(words)) # 중복 제거 포함
+
+        prepared['keywords'] = prepared.apply(clean_keywords, axis=1)
+
+        # 5. 메타데이터 추가 및 불필요한 행 제거
         prepared['source'] = 'CSV'
         prepared['source_file'] = os.path.basename(csv_path)
 
+        # 위도/경도가 없거나 이름이 없는 데이터는 추천이 불가능하므로 제거
         prepared = prepared.dropna(subset=['lat', 'lng'])
         prepared = prepared[prepared['name'] != '']
-
-        if 'keywords' not in prepared.columns or not prepared['keywords'].astype(str).str.strip().any():
-            prepared['keywords'] = prepared['name'].apply(self._extract_keywords_from_name)
-        else:
-            empty_keywords = prepared['keywords'].astype(str).str.strip() == ''
-            prepared.loc[empty_keywords, 'keywords'] = prepared.loc[empty_keywords, 'name'].apply(
-                self._extract_keywords_from_name
-            )
 
         return prepared.reset_index(drop=True)
     
@@ -108,40 +115,22 @@ class DataManager:
     
     @st.cache_data(ttl=3600)  # 1시간 캐싱
     def load_csv(_self) -> pd.DataFrame:
-        """
-        CSV 파일을 로딩하고 정규화합니다
-        
-        Returns:
-            pandas DataFrame
-            
-        CSV 구조:
-            name,category,lat,lng,address,phone,place_url,keywords (선택)
-            성산일출봉,자연,33.4583,126.9422,제주특별자치도...,064-xxx-xxxx,https://...,일출,오름,경관
-        """
+        """data.csv 하나만 타겟팅하여 로드합니다."""
+        if not os.path.exists(_self.csv_path):
+            st.error(f"⚠️ '{_self.csv_path}' 파일을 찾을 수 없습니다.")
+            return pd.DataFrame()
+
         try:
-            dataframes = []
-
-            for csv_path in _self.csv_candidates:
-                if not os.path.exists(csv_path):
-                    continue
-
-                loaded = _self._read_csv_with_fallbacks(csv_path)
-                prepared = _self._prepare_dataframe(loaded, csv_path)
-                if not prepared.empty:
-                    dataframes.append(prepared)
-
-            if not dataframes:
-                st.error("CSV 파일을 찾지 못했습니다.")
-                return pd.DataFrame()
-
-            df = pd.concat(dataframes, ignore_index=True)
-            df = df.drop_duplicates(subset=['name'], keep='first').reset_index(drop=True)
-
+            # 질문하신 함수들을 호출하여 데이터를 읽고 가공합니다.
+            loaded = _self._read_csv_with_fallbacks(_self.csv_path)
+            prepared = _self._prepare_dataframe(loaded, _self.csv_path)
+            
+            # 최종 중복 제거
+            df = prepared.drop_duplicates(subset=['name'], keep='first').reset_index(drop=True)
             _self.df = df
             return df
-            
         except Exception as e:
-            st.error(f"CSV 로딩 오류: {e}")
+            st.error(f"데이터 로드 중 오류 발생: {e}")
             return pd.DataFrame()
     
     def _normalize_category(self, category: str) -> str:
