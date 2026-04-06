@@ -1,0 +1,2 @@
+# pip requirements
+# conda install로 설치할 수 없는 패키지만 여기에 추가하세요
