@@ -76,24 +76,10 @@ with st.sidebar:
     st.divider()
 
     # ── 1. API 연결 상태 ────────────────────────────────────
-    st.markdown("### 🔑 API 연결 상태")
-    st.caption("키는 .env 파일에서 자동 로드됩니다")
-
-    if st.session_state.kakao_key:
-        if st.session_state.kakao_ok:
-            st.success("✅ 카카오 API: 연결됨")
-        else:
-            st.error("❌ 카카오 API: 연결 실패 (.env 키 확인)")
-    else:
-        st.warning("⚠️ 카카오 API 키 없음 (.env에 KAKAO_API_KEY 추가)")
-
-    if st.session_state.openai_key:
-        if st.session_state.openai_ok:
-            st.success("✅ OpenAI API: 연결됨")
-        else:
-            st.error("❌ OpenAI API: 연결 실패 (.env 키 확인)")
-    else:
-        st.info("ℹ️ OpenAI API 키 없음 (챗봇/AI 추천 비활성)")
+    kakao_status  = "✅ 연결됨" if st.session_state.kakao_ok  else ("❌ 연결 실패" if st.session_state.kakao_key  else "⚠️ 키 없음")
+    openai_status = "✅ 연결됨" if st.session_state.openai_ok else ("❌ 연결 실패" if st.session_state.openai_key else "⚠️ 키 없음")
+    st.caption(f"🔑 카카오 API: {kakao_status}")
+    st.caption(f"🔑 OpenAI API: {openai_status}")
 
     st.divider()
 
@@ -150,6 +136,14 @@ with st.sidebar:
             st.checkbox(c, value=True, disabled=True, key=f"c_{c}")
     else:
         sel_cats = [c for c in CATEGORIES if st.checkbox(c, key=f"c_{c}")]
+
+    st.markdown("**📍 추천 반경 설정**")
+    radius_km = st.slider(
+        "숙소 기준 반경 (km)",
+        min_value=5, max_value=60, value=30, step=5,
+        help="선택한 반경 내의 장소만 추천에 포함됩니다"
+    )
+    st.caption(f"📍 숙소에서 **{radius_km}km** 이내 장소만 추천")
 
     st.markdown("**🤖 AI 맞춤 추천 조건**")
     preferences = st.text_area(
@@ -215,7 +209,7 @@ if gen_btn and sel_cats:
         ulng = st.session_state.user_lng
 
         st.session_state.itinerary = engine.auto_recommend(
-                num_days, sel_cats, ulat, ulng, preferences
+                num_days, sel_cats, ulat, ulng, preferences, radius_km
             )
     st.success("✅ 추천 코스 생성 완료!")
 
@@ -238,6 +232,7 @@ if st.session_state.itinerary:
                 st.session_state.user_lat,
                 st.session_state.user_lng,
                 kakao,
+                stay_name=st.session_state.stay_name,
             )
 
     # 전체 지도 탭

@@ -47,7 +47,8 @@ class RecommendationEngine:
     # ── 자동 추천 ───────────────────────────────────────────
     def auto_recommend(self, num_days: int, cats: List[str],
                        ulat: float, ulng: float,
-                       preferences: str = "") -> List[Dict]:
+                       preferences: str = "",
+                       radius_km: float = 30) -> List[Dict]:
         """시간대별 자동 추천 코스 생성  |  📊 CSV 데이터"""
         df = self.dm.filter_by_cats(cats)
         used = set()   # 중복 방지: 이미 배치된 장소명 기록
@@ -58,7 +59,7 @@ class RecommendationEngine:
             for slot in TIME_SLOTS:
                 # 선택 안 된 카테고리는 유사 카테고리로 대체
                 cat = slot["cat"] if slot["cat"] in cats else (cats[0] if cats else "기타")
-                place = self._pick(df, cat, slot["kw"], ulat, ulng, used, preferences)
+                place = self._pick(df, cat, slot["kw"], ulat, ulng, used, preferences, radius_km)
                 if place:
                     used.add(place["name"])
                     pos_rv, neg_rv = self._classify_reviews(place.get("reviews_text", ""))
@@ -104,7 +105,7 @@ class RecommendationEngine:
     # ── 내부: 장소 선택 ─────────────────────────────────────
     def _pick(self, df: pd.DataFrame, cat: str, kw: list,
               ulat: float, ulng: float, used: set,
-              preferences: str) -> Optional[Dict]:
+              preferences: str, radius_km: float = 30) -> Optional[Dict]:
         """카테고리+키워드+거리+평점 종합 점수로 최적 장소 선택  |  📊 CSV"""
         pool = df[df["category"] == cat].copy()
         pool = pool[~pool["name"].isin(used)]
@@ -115,6 +116,15 @@ class RecommendationEngine:
             return None
 
         pool = pool.copy()
+        # 반경 필터링: 선택한 km 이내 장소만 포함
+        pool["_dist"] = pool.apply(
+            lambda r: haversine(ulat, ulng, float(r["lat"]), float(r["lng"])), axis=1
+        )
+        in_radius = pool[pool["_dist"] <= radius_km]
+        if not in_radius.empty:
+            pool = in_radius
+        # 반경 내 장소가 없으면 필터 없이 전체에서 선택 (fallback)
+
         pool["_score"] = 0.0
         # 1. 평점 점수
         pool["_score"] += pool["rating"].fillna(3.5) * 10
@@ -129,9 +139,6 @@ class RecommendationEngine:
                 pool["_score"] += pool["keywords"].str.contains(w, na=False, case=False).astype(int) * 10
                 pool["_score"] += pool["reviews_text"].str.contains(w, na=False, case=False).astype(int) * 3
         # 5. 거리 패널티
-        pool["_dist"] = pool.apply(
-            lambda r: haversine(ulat, ulng, float(r["lat"]), float(r["lng"])), axis=1
-        )
         pool["_score"] -= pool["_dist"].clip(0, 60) * 0.5
 
         # 상위 5개 중 무작위 1개 (다양성 확보)

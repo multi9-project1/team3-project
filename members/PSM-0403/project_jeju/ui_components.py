@@ -34,7 +34,8 @@ def kakao_badge():
 def render_place_card(slot: Dict, place: Dict, reason: str,
                       prev_lat: float, prev_lng: float,
                       kakao: Optional[KakaoService] = None,
-                      pos_reviews: List = [], neg_reviews: List = []):
+                      pos_reviews: List = [], neg_reviews: List = [],
+                      prev_name: str = "출발지"):
     """단일 장소 카드 렌더링 (데이터 출처 구분 포함)"""
     with st.container():
         # ── 헤더 ──
@@ -62,9 +63,13 @@ def render_place_card(slot: Dict, place: Dict, reason: str,
             plat = place.get("lat", "")
             plng = place.get("lng", "")
             if plat and plng:
-                navi_url = f"https://map.kakao.com/link/to/{name_enc},{plat},{plng}"
+                from_enc = quote(str(prev_name))
+                navi_url = (
+                    f"https://map.kakao.com/link/from/{from_enc},{prev_lat},{prev_lng}"
+                    f"/to/{name_enc},{plat},{plng}"
+                )
                 st.markdown(f"[🗺️ 카카오 길찾기]({navi_url})")
-                st.caption("🗺️ 카카오 API 연동")
+                st.caption(f"🗺️ {prev_name} → {place.get('name', '')}")
             if kakao and kakao.key and plat and plng:
                 phone = kakao.get_phone(str(place.get("name", "")), float(plat), float(plng))
                 if phone:
@@ -102,16 +107,20 @@ def render_place_card(slot: Dict, place: Dict, reason: str,
 
 # ── 일차 전체 일정 ───────────────────────────────────────────
 def render_day_course(day_info: Dict, ulat: float, ulng: float,
-                      kakao: Optional[KakaoService] = None):
+                      kakao: Optional[KakaoService] = None,
+                      stay_name: str = "숙소"):
     """1개 일차의 전체 슬롯 순서대로 렌더링"""
     prev_lat, prev_lng = ulat, ulng
+    prev_name = stay_name
     for s in day_info.get("slots", []):
         render_place_card(
             s["slot"], s["place"], s["reason"],
             prev_lat, prev_lng, kakao,
             pos_reviews=s.get("pos_reviews", []),
             neg_reviews=s.get("neg_reviews", []),
+            prev_name=prev_name,
         )
+        prev_name = s["place"].get("name", prev_name)
         prev_lat = float(s["place"].get("lat", prev_lat))
         prev_lng = float(s["place"].get("lng", prev_lng))
 
