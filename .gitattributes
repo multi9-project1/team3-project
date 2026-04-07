@@ -1,1 +1,2 @@
 *.bin filter=lfs diff=lfs merge=lfs -text
+members/PSM-0403/project_jeju/chroma_jeju_reviews/0573cbd8-3cd0-44ba-b621-86dca3cde8d7/data_level0.bin filter=lfs diff=lfs merge=lfs -text
