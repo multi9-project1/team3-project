@@ -1,7 +1,7 @@
 # ============================================================
 # data_manager.py  |  CSV 데이터 로딩 및 관리
 # ============================================================
-# 역할: data.csv를 읽고 표준화
+# 역할: jeju_crawling_100.csv를 읽고 표준화
 #   - 인코딩 자동 감지 (cp949 / utf-8 등)
 #   - 카테고리 정규화 (5개 표준 카테고리)
 #   - 텍스트 검색, 카테고리 필터링 제공
@@ -15,7 +15,7 @@ from config import CATEGORY_MAP
 
 
 class DataManager:
-    """data.csv 기반 장소 데이터 관리자  |  📊 CSV 데이터"""
+    """jeju_crawling_100.csv 기반 장소 데이터 관리자  |  📊 CSV 데이터"""
 
     CSV_FILES  = ["jeju_crawling_100.csv"]
     ENCODINGS  = ["utf-8", "utf-8-sig", "cp949", "euc-kr"]
@@ -43,7 +43,7 @@ class DataManager:
                 except Exception as e:
                     st.error(f"CSV 로딩 오류: {e}")
                     return
-        st.warning("⚠️ data.csv를 찾지 못했습니다. 파일 경로를 확인해주세요.")
+        st.warning("⚠️ jeju_crawling_100.csv를 찾지 못했습니다. 파일 경로를 확인해주세요.")
 
     # jeju_crawling_100.csv 컬럼 → 표준 컬럼 매핑
     COL_RENAME = {
