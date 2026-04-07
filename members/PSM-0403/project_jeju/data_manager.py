@@ -15,7 +15,7 @@ from config import CATEGORY_MAP
 
 
 class DataManager:
-    """jeju_crawling_100.csv 기반 장소 데이터 관리자  |  📊 CSV 데이터"""
+    """data.csv 기반 장소 데이터 관리자  |  📊 CSV 데이터"""
 
     CSV_FILES  = ["jeju_crawling_100.csv"]
     ENCODINGS  = ["utf-8", "utf-8-sig", "cp949", "euc-kr"]

@@ -122,8 +122,17 @@ with st.sidebar:
     # ── 3. 여행 설정 ────────────────────────────────────────
     st.markdown("### ⚙️ 여행 설정")
     today      = datetime.date.today()
-    start_date = st.date_input("🗓️ 여행 시작일", value=today, min_value=today)
-    end_date   = st.date_input("🗓️ 여행 종료일", value=today + datetime.timedelta(days=1), min_value=start_date)
+    date_range = st.date_input(
+        "🗓️ 여행 기간",
+        value=(today, today + datetime.timedelta(days=1)),
+        min_value=today,
+    )
+    if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+        start_date, end_date = date_range[0], date_range[1]
+    elif isinstance(date_range, (list, tuple)) and len(date_range) == 1:
+        start_date = end_date = date_range[0]
+    else:
+        start_date = end_date = date_range
     num_days   = max(1, (end_date - start_date).days + 1)
     st.caption(f"총 {num_days}일 여행")
     if num_days > 7:
@@ -147,17 +156,32 @@ with st.sidebar:
     st.caption(f"📍 숙소에서 **{radius_km}km** 이내 장소만 추천")
 
     st.markdown("**🤖 AI 맞춤 추천 조건**")
-    preferences = st.text_area(
-        "취향·조건 자유 입력 (선택)",
-        placeholder="예: 오징어 좋아함, 바다뷰 카페 선호, 아이 동반...",
-        height=75,
-    )
+    st.caption("일차별로 원하는 슬롯만 입력하세요. 비워두면 기본 추천합니다.")
+    _SLOT_DEFS = [
+        ("morning_cafe",   "☕ 아침 카페",  "예: 오션뷰, 브런치"),
+        ("morning_tour",   "🌅 오전 관광",  "예: 감귤 체험, 오름"),
+        ("lunch",          "🍽️ 점심 식사",  "예: 해산물, 국수"),
+        ("afternoon_tour", "🏛️ 오후 관광",  "예: 박물관, 액티비티"),
+        ("afternoon_cafe", "🍰 오후 카페",  "예: 감성카페, 디저트"),
+        ("dinner",         "🌙 저녁 식사",  "예: 흑돼지, 회"),
+    ]
+    pref_slots = {}  # {day: {slot_key: text}}
+    for d in range(1, num_days + 1):
+        with st.expander(f"📅 {d}일차 조건", expanded=(d == 1)):
+            day_prefs = {}
+            for slot_key, label, ph in _SLOT_DEFS:
+                val = st.text_input(label, placeholder=ph, key=f"ps_{d}_{slot_key}")
+                if val:
+                    day_prefs[slot_key] = val
+            pref_slots[d] = day_prefs
+    preferences = " ".join(
+        v for day_p in pref_slots.values() for v in day_p.values()
+    )  # 챗봇·Chroma용 통합
     if preferences:
         if is_chroma_ready():
-            st.caption("입력하신 조건을 🧠 리뷰 유사도(Chroma) + 📊 CSV 키워드에서 분석해 우선 반영합니다")
+            st.caption("🧠 Chroma + 📊 CSV 키워드에서 각 조건을 분석해 반영합니다")
         else:
-            st.caption("입력하신 조건을 📊 CSV 키워드·리뷰에서 분석해 우선 반영합니다")
-            st.caption("💡 `python build_chroma.py` 실행 시 리뷰 유사도 검색이 활성화됩니다")
+            st.caption("📊 CSV 키워드·리뷰에서 각 조건을 분석해 반영합니다")
 
     st.divider()
 
@@ -223,10 +247,24 @@ if gen_btn and sel_cats:
                 )
 
         st.session_state.itinerary = engine.auto_recommend(
-                num_days, sel_cats, ulat, ulng, preferences, radius_km,
-                chroma_boost=chroma_boost,
+                num_days, sel_cats, ulat, ulng,
+                pref_slots=pref_slots,
+                radius_km=radius_km, chroma_boost=chroma_boost,
             )
+
     st.success("✅ 추천 코스 생성 완료!")
+
+    # 취향 키워드 반영 결과 피드백
+    if preferences and st.session_state.itinerary:
+        matched_places = []
+        for day_info in st.session_state.itinerary:
+            for s in day_info["slots"]:
+                if "🎯" in s.get("reason", ""):
+                    matched_places.append(s["place"].get("name", ""))
+        if matched_places:
+            st.success(f"✅ **{len(matched_places)}개** 장소에서 취향 키워드 반영됨: {', '.join(matched_places)}")
+        else:
+            st.warning("⚠️ CSV 데이터에 일치하는 장소가 없거나 적습니다. 다른 표현으로 시도해보세요.")
 
 # ── 결과 탭 ─────────────────────────────────────────────────
 if st.session_state.itinerary:

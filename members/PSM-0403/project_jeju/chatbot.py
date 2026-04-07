@@ -44,9 +44,11 @@ def render_chatbot(itinerary: list, openai_key: str):
         st.warning("💡 챗봇을 사용하려면 OpenAI API 키를 입력하고 연결을 확인해주세요.")
         return
 
-    # 세션 대화 이력 초기화
+    # 세션 대화 이력 / 입력창 키 초기화
     if "chat_msgs" not in st.session_state:
         st.session_state.chat_msgs = []
+    if "chat_input_key" not in st.session_state:
+        st.session_state.chat_input_key = 0
 
     # ── 대화 이력 표시 ──
     chat_box = st.container()
@@ -62,13 +64,13 @@ def render_chatbot(itinerary: list, openai_key: str):
                 unsafe_allow_html=True
             )
 
-    # ── 입력창 ──
+    # ── 입력창 (키 카운터로 전송 후 자동 초기화) ──
     col_inp, col_btn = st.columns([5, 1])
     with col_inp:
         user_text = st.text_input(
             "chat_input", label_visibility="collapsed",
             placeholder="추천 코스나 제주 여행에 대해 질문해보세요!",
-            key="chat_text_input"
+            key=f"chat_text_input_{st.session_state.chat_input_key}"
         )
     with col_btn:
         send = st.button("전송 ➤", use_container_width=True)
@@ -81,6 +83,8 @@ def render_chatbot(itinerary: list, openai_key: str):
 
     # ── 메시지 전송 처리 ──
     if send and user_text.strip():
+        # 입력창 초기화: 키 카운터 증가 → 다음 렌더에서 빈 입력창으로 교체됨
+        st.session_state.chat_input_key += 1
         st.session_state.chat_msgs.append(
             {"role": "user", "content": user_text.strip()}
         )
@@ -94,14 +98,31 @@ def render_chatbot(itinerary: list, openai_key: str):
         # 최근 10턴만 포함 (토큰/비용 절감)
         recent = st.session_state.chat_msgs[-10:]
 
+        reply = ""
         try:
-            client  = OpenAI(api_key=openai_key)
-            resp    = client.chat.completions.create(
-                model   = "gpt-4o-mini",
-                messages= [{"role": "system", "content": system}] + recent,
-                max_completion_tokens = 600,
+            client = OpenAI(api_key=openai_key)
+            # 스트리밍: 첫 토큰부터 즉시 표시해 체감 속도 개선
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": system}] + recent,
+                max_completion_tokens=600,
+                stream=True,
             )
-            reply = resp.choices[0].message.content.strip()
+            stream_box = st.empty()
+            parts: list[str] = []
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    parts.append(delta)
+                    stream_box.markdown(
+                        f'<div style="text-align:left;margin:6px 0">'
+                        f'<span style="background:#f0fdf4;padding:8px 12px;'
+                        f'border-radius:12px;display:inline-block;max-width:85%">'
+                        f'🤖 {"".join(parts)}▌</span></div>',
+                        unsafe_allow_html=True,
+                    )
+            stream_box.empty()   # 스트리밍 임시 표시 제거 (rerun 후 정식 버블로 대체)
+            reply = "".join(parts).strip()
         except Exception as e:
             reply = f"⚠️ 오류가 발생했습니다: {e}"
 
