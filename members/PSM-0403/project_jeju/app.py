@@ -20,6 +20,7 @@ from kakao_service import KakaoService
 from recommendation_engine import RecommendationEngine
 from ui_components import render_day_course, render_full_map, render_analysis
 from chatbot import render_chatbot
+from chroma_retriever import is_chroma_ready, get_similar_places
 
 # ── 페이지 설정 ─────────────────────────────────────────────
 st.set_page_config(**PAGE_CONFIG)
@@ -152,7 +153,11 @@ with st.sidebar:
         height=75,
     )
     if preferences:
-        st.caption("입력하신 조건을 📊 CSV 키워드·리뷰에서 분석해 우선 반영합니다")
+        if is_chroma_ready():
+            st.caption("입력하신 조건을 🧠 리뷰 유사도(Chroma) + 📊 CSV 키워드에서 분석해 우선 반영합니다")
+        else:
+            st.caption("입력하신 조건을 📊 CSV 키워드·리뷰에서 분석해 우선 반영합니다")
+            st.caption("💡 `python build_chroma.py` 실행 시 리뷰 유사도 검색이 활성화됩니다")
 
     st.divider()
 
@@ -208,8 +213,18 @@ if gen_btn and sel_cats:
         ulat = st.session_state.user_lat
         ulng = st.session_state.user_lng
 
+        # Chroma 리뷰 유사도 부스트 (취향 입력 + DB 준비된 경우)
+        chroma_boost = {}
+        if preferences and is_chroma_ready() and st.session_state.openai_ok:
+            with st.spinner("🧠 리뷰 유사도 분석 중..."):
+                chroma_boost = get_similar_places(
+                    preferences,
+                    st.session_state.openai_key,
+                )
+
         st.session_state.itinerary = engine.auto_recommend(
-                num_days, sel_cats, ulat, ulng, preferences, radius_km
+                num_days, sel_cats, ulat, ulng, preferences, radius_km,
+                chroma_boost=chroma_boost,
             )
     st.success("✅ 추천 코스 생성 완료!")
 
