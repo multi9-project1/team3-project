@@ -24,7 +24,7 @@ def get_similar_places(
     query: str,
     openai_key: str,
     k: int = 50,
-    score_threshold: float = 0.35,
+    score_threshold: float = 0.25,
     top_n: int = 20,
 ) -> Dict[str, float]:
     """
