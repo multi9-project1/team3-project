@@ -5,6 +5,7 @@
 # ============================================================
 
 import os
+import shutil
 import uuid
 import math
 import pandas as pd
@@ -16,6 +17,14 @@ from config import OPENAI_API_KEY
 
 CHROMA_DIR = "./chroma_jeju_reviews"
 COLLECTION  = "jeju_reviews"
+
+# ---------------------------
+# 0. 기존 DB 삭제 (손상 인덱스 초기화)
+# ---------------------------
+if os.path.isdir(CHROMA_DIR):
+    shutil.rmtree(CHROMA_DIR)
+    print(f"기존 Chroma DB 삭제 완료: {CHROMA_DIR}")
+os.makedirs(CHROMA_DIR, exist_ok=True)
 
 # ---------------------------
 # 1. CSV 로드 (인코딩 자동 감지)
