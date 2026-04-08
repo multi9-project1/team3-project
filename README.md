@@ -146,7 +146,9 @@ conda activate <본인-아이디>-env
 
 | 이름 | GitHub ID | 역할 | 디렉토리 |
 |------|-----------|------|----------|
-| (팀장 이름) | @github-id | 팀장 | `members/github-id/` |
-| | | | |
+| 피수민 | @PSM-0403 | 팀장 | members/PSM-0403 |
+| 오경석 | @kyoungseok-Oh | 팀원 | members/kyoungseok-Oh |
+| 김구 | @archive920913-cmyk | 팀원 | members/archive920913-cmyk |
+| 안성민 | @CECode | 팀원 | members/CECode |
 
 > 멤버 등록 시 위 표에 본인 정보를 추가해주세요.
