@@ -1,8 +1,18 @@
-# 🍊 제주 여행 맞춤 추천 시스템 v4.0
+# 🍊 제주 여행 맞춤 추천 시스템
 
 팀이 직접 수집한 CSV 데이터와 카카오 API, OpenAI를 결합하여 제주 여행 일정을 자동으로 추천해주는 Streamlit 웹 앱입니다.
 
+## Tools
+![Kakao Developers](https://img.shields.io/badge/Kakao%20Developers-18104A?style=plastic)
+![Python](https://img.shields.io/badge/Python-3776AB?style=plastic&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=plastic&logo=streamlit&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=plastic&logo=github&logoColor=white)
+![Render](https://img.shields.io/badge/Render-000000?style=plastic&logo=render&logoColor=white)
+![VS%20Code](https://img.shields.io/badge/VS%20Code-007ACC?style=plastic&logo=visualstudiocode&logoColor=white)
+![ChatGPT](https://img.shields.io/badge/ChatGPT-74AA9C?style=plastic&logo=openai&logoColor=white)
 ---
+
+
 
 ## 주요 기능
 
@@ -40,7 +50,7 @@ cp .env.example .env
 ```env
 KAKAO_API_KEY=여기에_카카오_REST_API_키_입력
 OPENAI_API_KEY=여기에_OpenAI_API_키_입력   # 선택사항
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=GPT_MODEL
 ```
 
 - 카카오 REST API 키: [https://developers.kakao.com](https://developers.kakao.com)
@@ -90,13 +100,13 @@ project/
 | UI 프레임워크 | Streamlit |
 | 지도 시각화 | Folium, streamlit-folium |
 | 장소 검색 | 카카오 REST API |
-| AI 추천 / 챗봇 | OpenAI API (gpt-4o-mini) |
+| AI 추천 / 챗봇 | OpenAI API |
 | 리뷰 유사도 검색 | ChromaDB, LangChain |
-| 데이터 처리 | Pandas |
+| 데이터 처리 및 크롤링 | Pandas, Selenium |
 
 ---
 
 ## 데이터 출처
 
-- **CSV 데이터** (`jeju_crawling_100.csv`): 팀이 직접 수집한 제주 장소 정보 (장소명, 주소, 평점, 리뷰, 키워드)
+- **CSV 데이터** (`jeju_crawling_100.csv`): 팀이 직접 수집한 제주 장소 정보 (장소명, 주소, 평점, 리뷰 수, 리뷰 본문)
 - **카카오 API**: 숙소 검색, 네비 경로, 지도 링크 (실시간)
