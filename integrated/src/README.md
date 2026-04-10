@@ -104,7 +104,7 @@ project/
 ---
 
 ## 데이터 출처
-
-- **CSV 데이터** (`jeju_crawling_100.csv`): 팀이 직접 수집한 제주 장소 정보
+- **[한국관광공사 데이터랩](https://datalab.visitkorea.or.kr/datalab/portal/main/getMainForm.do)**
+  - **전처리 및 크롤링 -> CSV 데이터** (`jeju_crawling_100.csv`): 팀이 직접 수집한 제주 장소 정보
   - (장소명, 위도, 경도, 주소, 평점, 리뷰 수, 리뷰 본문)
-- **카카오 API**: 숙소 검색, 네비 경로, 지도 링크 (실시간)
+- **[카카오맵 API](https://apis.map.kakao.com/)**: 숙소 검색, 네비 경로, 지도 링크 (실시간)
